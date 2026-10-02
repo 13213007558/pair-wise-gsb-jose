@@ -336,6 +336,7 @@ require 'jose/jwa/edwards_point'
 require 'jose/jwa/sha3'
 
 require 'jose/jwa/aes_kw'
+require 'jose/jwa/aes_kwp'
 require 'jose/jwa/concat_kdf'
 require 'jose/jwa/curve25519'
 require 'jose/jwa/curve448'

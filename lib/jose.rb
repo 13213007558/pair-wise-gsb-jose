@@ -5,6 +5,7 @@ require 'immutable/hash'
 require 'json'
 require 'openssl'
 require 'securerandom'
+require 'stringio'
 require 'thread'
 require 'zlib'
 
