@@ -1,38 +1,6 @@
-module JOSE::JWA::AES_KW
+require 'stringio'
 
-  extend self
-
-  DEFAULT_IV = OpenSSL::BN.new(0xA6A6A6A6A6A6A6A6).to_s(2)
-
-  def unwrap(cipher_text, kek, iv = nil)
-    iv ||= DEFAULT_IV
-    bits = kek.bytesize * 8
-    if cipher_text.bytesize % 8 == 0 and (bits == 128 or bits == 192 or bits == 256)
-      block_count = cipher_text.bytesize.div(8) - 1
-      buffer = do_unwrap(cipher_text, 5, block_count, kek, bits)
-      buffer_s = StringIO.new(buffer)
-      if buffer_s.read(iv.bytesize) != iv
-        raise ArgumentError, "iv does not match"
-      else
-        plain_text = buffer_s.read
-        return plain_text
-      end
-    else
-      raise ArgumentError, "bad cipher_text, kek, or iv"
-    end
-  end
-
-  def wrap(plain_text, kek, iv = nil)
-    iv ||= DEFAULT_IV
-    bits = kek.bytesize * 8
-    if plain_text.bytesize % 8 == 0 and (bits == 128 or bits == 192 or bits == 256)
-      buffer = [iv, plain_text].join
-      block_count = buffer.bytesize.div(8) - 1
-      return do_wrap(buffer, 0, block_count, kek, bits)
-    else
-      raise ArgumentError, "bad plain_text, kek, or iv"
-    end
-  end
+module JOSE::JWA::AES_KW_Primitive
 
 private
 
@@ -100,6 +68,49 @@ private
     a1, b1 = aes_ecb_encrypt(bits, kek, data).unpack('Q>a*')
     a2 = a1 ^ round
     return do_wrap_step([a2, head, b1, tail].pack('Q>a*a*a*'), j, i + 1, block_count, kek, bits)
+  end
+
+  def valid_bits?(bits)
+    return bits == 128 || bits == 192 || bits == 256
+  end
+
+end
+
+module JOSE::JWA::AES_KW
+
+  extend self
+  extend JOSE::JWA::AES_KW_Primitive
+
+  DEFAULT_IV = OpenSSL::BN.new(0xA6A6A6A6A6A6A6A6).to_s(2)
+
+  def unwrap(cipher_text, kek, iv = nil)
+    iv ||= DEFAULT_IV
+    bits = kek.bytesize * 8
+    if cipher_text.bytesize % 8 == 0 and valid_bits?(bits)
+      block_count = cipher_text.bytesize.div(8) - 1
+      buffer = do_unwrap(cipher_text, 5, block_count, kek, bits)
+      buffer_s = StringIO.new(buffer)
+      if buffer_s.read(iv.bytesize) != iv
+        raise ArgumentError, "iv does not match"
+      else
+        plain_text = buffer_s.read
+        return plain_text
+      end
+    else
+      raise ArgumentError, "bad cipher_text, kek, or iv"
+    end
+  end
+
+  def wrap(plain_text, kek, iv = nil)
+    iv ||= DEFAULT_IV
+    bits = kek.bytesize * 8
+    if plain_text.bytesize % 8 == 0 and valid_bits?(bits)
+      buffer = [iv, plain_text].join
+      block_count = buffer.bytesize.div(8) - 1
+      return do_wrap(buffer, 0, block_count, kek, bits)
+    else
+      raise ArgumentError, "bad plain_text, kek, or iv"
+    end
   end
 
 end
